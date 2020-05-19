@@ -2,7 +2,6 @@ import pymysql
 from twisted.enterprise import adbapi
 from scrapy.utils.project import get_project_settings  #导入seetings配置
 from datetime import datetime
-from spider.items import LiepinItem
 from twisted.internet import defer
 class SpiderPipeline(object):
 

@@ -17,6 +17,7 @@ class LinkedinItem(scrapy.Item):
     seniorityLevel = scrapy.Field()
     companyAddress = scrapy.Field()
     employmentType = scrapy.Field()
+    pubTime = scrapy.Field()
     createdTime = scrapy.Field()
     updatedTime = scrapy.Field()
     pass

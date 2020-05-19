@@ -26,32 +26,29 @@ class LinkedinSpider(scrapy.Spider):
         self.cursor = self.db.cursor()
 
         yield scrapy.Request('https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?location=Worldwide&trk=public_jobs_jobs-search-bar_search-submit&sortBy=DD&start=0&keywords=' + self.keyword)
-        # yield scrapy.Request('https://www.linkedin.com/jobs/search?location=Worldwide&locationId=OTHERS.worldwide&&keywords=' + self.keyword)
 
     def parse(self, response):
 
         ids = re.findall("data-id=\"(.+?)\"", response.text)
-        datatimes = re.findall("datatime=\"(.+?)\"", response.text)
+        datetimes = re.findall("datetime=\"(.+?)\"", response.text)
 
         item = LinkedinItem()
         item['keywords'] = self.keyword
         item['spiderUrl'] = response.url
 
-        print(len(ids))
-        for id in ids:
+        for index,id in enumerate(ids):
             item['jobId'] = id
 
-            sql = "SELECT `keywords` FROM `linkedin` where `jobId` = '%s'"
+            sql = "SELECT `keywords` FROM `positions` where `jobId` = '%s'"
             self.cursor.execute(sql % (item['jobId']))
             result = self.cursor.fetchone()
-            # print(result)
 
             if result :
                 if item['keywords'] in result[0].split('|'):
                     print("跳过: ", item['keywords'], item['jobId'])
                 else:
                     newKeywords = result[0] + '|' + item['keywords']
-                    sql = "UPDATE `linkedin` SET `keywords` = '%s', `updatedTime` = '%s' where `jobId` = '%s'"
+                    sql = "UPDATE `positions` SET `keywords` = '%s', `updatedTime` = '%s' where `jobId` = '%s'"
                     self.cursor.execute(sql % (newKeywords, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), item['jobId']))
                     self.db.commit()
                     print("更新成功: ", item['keywords'], item['jobId'], newKeywords)
@@ -59,10 +56,10 @@ class LinkedinSpider(scrapy.Spider):
                 continue
 
             item['jobUrl'] = "https://www.linkedin.com/jobs/view/" + id
+            item['pubTime'] = datetimes[index]
             yield scrapy.Request(url=item['jobUrl'], callback=self.detail, meta=item)
 
         self.page = self.page + 1
-        print(item['spiderUrl'])
 
         cookie = {
             "bcookie":"v=2&1d6ee84e-02dc-4f68-864d-031beaec0113",
@@ -89,22 +86,25 @@ class LinkedinSpider(scrapy.Spider):
             "UserMatchHistory":"AQLPCjEbAgZxVwAAAW9vG3lfS7Dk2ZC8F8fx6JotYjTMhOV2AayF2f91ghYC_JJT2dW5bwzr63gshWld2lb2ni4CEIgWZ5LCVgHmE_vpqcMReAUWVXuyKsZDff4JCJs0kTL0VoS7w42BUuULhlo_l9mgmeX9dh1TgcA8YfGcrrwUxGFK661LPqO9T2ZydnHHGnsxvg",
             # "lidc":"b=SGST01:g=4:u=1:i=1578113642:t=1578200042:s=AQFOVLlhYD7Ob5PFGsZw9hCvSoBQxveH"
         }
-        print(cookie)
+        # print(cookie)
 
 
 
         # cookies = dict(cookies)
 
-        # if (len(ids) == 25):
-        #     yield scrapy.Request(item['spiderUrl'] + '&start=' + str(self.page * 25), cookies=cookie, callback=self.parse)
+        if (len(ids) == 25):
+            item['spiderUrl'] = item['spiderUrl'].replace('start=' + str((self.page - 1) * 25), 'start=' + str(self.page * 25))
+            yield scrapy.Request(item['spiderUrl'], callback=self.parse)
 
     def detail(self, response):
         
         item = response.meta
+        # print(item['pubTime'])
+
         print(item['jobUrl'])
 
-        with open('index.html', 'w') as html_file:
-            html_file.write(response.text)
+        # with open('index.html', 'w') as html_file:
+        #     html_file.write(response.text)
         yield {
             'url': response.url
         }
@@ -113,9 +113,9 @@ class LinkedinSpider(scrapy.Spider):
         item['companyAddress'] = response.css('.topcard__flavor--bullet::text').extract_first()
         description = response.css('.description__text--rich').extract_first()
         
-        item['jobType'] = '领英'
+        item['jobType'] = 'linkedin'
         if ('职位来源于智联招聘。' in description):
-            item['jobType'] = '智联'
+            item['jobType'] = 'zhilian'
             description = description.replace('职位来源于智联招聘。', '')
             description = description.replace('以担保或任何理由索要财物，扣押证照，均涉嫌违法。', '')
             item['companyUrl'] = ''
@@ -130,56 +130,14 @@ class LinkedinSpider(scrapy.Spider):
         item['jobFunction'] = ','.join(response.css('.job-criteria__item:nth-child(3) .job-criteria__text--criteria::text').extract())
         item['industry'] = response.css('.job-criteria__item:nth-child(4) .job-criteria__text--criteria::text').extract_first()
 
-
-        # if (item['jobType'] == '企业'):
-        #     companyUrlArray = item['companyUrl'].split('/')
-        #     item['companyId'] = companyUrlArray[- 2]
-        #     item['industry'] = response.css('.right-blcok-post .new-compintro li:nth-child(1) a::text').extract_first()
-
-        #     companySize = response.css('.right-blcok-post .new-compintro li:nth-child(2)::text').extract_first()
-        #     if (companySize):
-        #         if (companySize[0:4] == '公司规模'):
-        #             item['companySize'] = companySize[5:]
-        #         if (companySize[0:4] == '公司地址'):
-        #             item['companySize'] = ''
-        #             item['companyAddress'] = companySize[5:]
-        #     else:
-        #         item['companySize'] = ''
-        #         item['companyAddress'] = ''
-
-        #     item['salary'] = response.css('.about-position .job-title-left .job-item-title::text').extract_first().split()[0]
-        #     item['position'] = response.css('.about-position .job-title-left .basic-infor span a::text').extract_first()
-        #     item['qualification'] = response.css('.about-position .job-item .job-qualifications span::text').extract_first()
-        #     item['pubTime'] = response.css('.about-position .job-item .basic-infor time::attr(title)').extract_first()
-
-        # else:
-        #     item['companyName'] = ''
-        #     item['companyUrl'] = ''
-        #     item['companyId'] = ''
-        #     item['companySize'] = response.css('.content-word li:nth-child(6)::text').extract_first()
-        #     item['companyAddress'] = ''
-        #     item['industry'] = response.css('.content-word li:nth-child(3) a::attr(title)').extract_first()
-        #     item['salary'] = response.css('.about-position .job-title-left .job-main-title::text').extract_first().split()[0]
-        #     item['position'] = response.css('.about-position .job-title-left .basic-infor span::text').extract_first()
-        #     item['qualification'] = response.css('.about-position .resume span::text').extract_first()
-        #     item['pubTime'] = response.css('.about-position  .basic-infor time::attr(title)').extract_first()
-
-        
-
-        # if response.css('.title-info label::text').extract_first() == '该职位已结束':
-        #     item['isEnd'] = 1
-        # else:
-        #     item['isEnd'] = 0
-
-        print(item)
         
         # yield item
-        sql = "insert into `linkedin`(keywords,spiderUrl,jobId,jobTitle,jobUrl,companyName,description,industry,companyAddress,seniorityLevel, employmentType, jobFunction,jobType, companyUrl, createdTime,updatedTime) \
-        values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, %s, %s, %s, %s, %s)"
+        sql = "insert into `positions`(keywords,spiderUrl,jobId,jobTitle,jobUrl,companyName,description,industry,companyAddress,seniorityLevel, employmentType, jobFunction,jobType, companyUrl, pubTime, createdTime,updatedTime) \
+        values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, %s, %s, %s, %s, %s, %s)"
 
         item['createdTime'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         item['updatedTime'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        self.cursor.execute(sql, (item['keywords'], item['spiderUrl'], item['jobId'], item['jobTitle'],item['jobUrl'], item['companyName'],item['description'],item['industry'],item['companyAddress'],item['seniorityLevel'], item['employmentType'], item['jobFunction'], item['jobType'],item['companyUrl'], item['createdTime'],item['updatedTime']))
+        self.cursor.execute(sql, (item['keywords'], item['spiderUrl'], item['jobId'], item['jobTitle'],item['jobUrl'], item['companyName'],item['description'],item['industry'],item['companyAddress'],item['seniorityLevel'], item['employmentType'], item['jobFunction'], item['jobType'],item['companyUrl'], item['pubTime'], item['createdTime'],item['updatedTime']))
         self.db.commit()
         print("新增成功: ", item['keywords'], item['jobId'])
