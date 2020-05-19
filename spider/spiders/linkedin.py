@@ -12,6 +12,8 @@ import sys
 from datetime import datetime
 import re
 from http.cookies import SimpleCookie
+import random
+from random import choice
 
 
 class LinkedinSpider(scrapy.Spider):
@@ -33,8 +35,11 @@ class LinkedinSpider(scrapy.Spider):
         result = self.cursor.fetchone()
         self.keyword = result[0]
         print(self.keyword)
+        sorts = ['R', 'DD']
+        sort = choice(sorts)
+        url = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?location=Worldwide&trk=public_jobs_jobs-search-bar_search-submit&sortBy=' + sort + '&start=0&keywords=' + self.keyword
 
-        yield scrapy.Request('https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?location=Worldwide&trk=public_jobs_jobs-search-bar_search-submit&sortBy=DD&start=0&keywords=' + self.keyword)
+        yield scrapy.Request(url)
 
     def parse(self, response):
 
