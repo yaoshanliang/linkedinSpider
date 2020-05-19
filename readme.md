@@ -31,7 +31,7 @@ Data will be stored in table `positions`
 
 ### Advanced usage
 
-For different project, you should create positions and titles with prefix, like `it_positions`, `it_title`
+For different project, you should create positions and titles with prefix, like `it_positions`, `it_titles`
 
 Then input job title in table `it_titles`
 
