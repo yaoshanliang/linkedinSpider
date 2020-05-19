@@ -4,7 +4,6 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 -- Table structure for positions
 -- ----------------------------
-DROP TABLE IF EXISTS `positions`;
 CREATE TABLE `positions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `keywords` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL,
@@ -40,8 +39,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 -- Table structure for title
 -- ----------------------------
-DROP TABLE IF EXISTS `title`;
-CREATE TABLE `title` (
+CREATE TABLE `titles` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
   `updateTime` datetime DEFAULT NULL,
