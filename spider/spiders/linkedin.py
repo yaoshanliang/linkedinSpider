@@ -30,11 +30,16 @@ class LinkedinSpider(scrapy.Spider):
         self.db = pymysql.connect(settings['MYSQL_HOST'], settings['MYSQL_USER'], settings['MYSQL_PASSWD'], settings['MYSQL_DBNAME'])
         self.cursor = self.db.cursor()
 
-        sql = "SELECT `title` FROM " + self.prefix + "title ORDER BY RAND()"
+        sql = "SELECT `id`, `title` FROM " + self.prefix + "titles ORDER BY updateTime asc"
         self.cursor.execute(sql)
         result = self.cursor.fetchone()
-        self.keyword = result[0]
+        self.keyword = result[1]
         print(self.keyword)
+
+        sql = "UPDATE " + self.prefix + "titles SET `updateTime` = '%s' where `id` = '%s'"
+        self.cursor.execute(sql % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), result[0]))
+        self.db.commit()
+
         sorts = ['R', 'DD']
         sort = choice(sorts)
         url = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?location=Worldwide&trk=public_jobs_jobs-search-bar_search-submit&sortBy=' + sort + '&start=0&keywords=' + self.keyword
