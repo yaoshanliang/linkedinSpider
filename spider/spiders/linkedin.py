@@ -16,14 +16,23 @@ from http.cookies import SimpleCookie
 
 class LinkedinSpider(scrapy.Spider):
     name = 'linkedin'
+    prefix = ''
 
     def start_requests(self):
-        self.keyword = ' '.join(self.keyword.split('+'))
+        if self.prefix:
+            self.prefix = self.prefix + '_'
+       
         self.page = 0
         settings = get_project_settings()  #获取settings配置，设置需要的信息
 
         self.db = pymysql.connect(settings['MYSQL_HOST'], settings['MYSQL_USER'], settings['MYSQL_PASSWD'], settings['MYSQL_DBNAME'])
         self.cursor = self.db.cursor()
+
+        sql = "SELECT `title` FROM " + self.prefix + "title ORDER BY RAND()"
+        self.cursor.execute(sql)
+        result = self.cursor.fetchone()
+        self.keyword = result[0]
+        print(self.keyword)
 
         yield scrapy.Request('https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?location=Worldwide&trk=public_jobs_jobs-search-bar_search-submit&sortBy=DD&start=0&keywords=' + self.keyword)
 
@@ -39,7 +48,7 @@ class LinkedinSpider(scrapy.Spider):
         for index,id in enumerate(ids):
             item['jobId'] = id
 
-            sql = "SELECT `keywords` FROM `positions` where `jobId` = '%s'"
+            sql = "SELECT `keywords` FROM " + self.prefix + "positions where `jobId` = '%s'"
             self.cursor.execute(sql % (item['jobId']))
             result = self.cursor.fetchone()
 
@@ -48,7 +57,7 @@ class LinkedinSpider(scrapy.Spider):
                     print("跳过: ", item['keywords'], item['jobId'])
                 else:
                     newKeywords = result[0] + '|' + item['keywords']
-                    sql = "UPDATE `positions` SET `keywords` = '%s', `updatedTime` = '%s' where `jobId` = '%s'"
+                    sql = "UPDATE " + self.prefix + "positions SET `keywords` = '%s', `updatedTime` = '%s' where `jobId` = '%s'"
                     self.cursor.execute(sql % (newKeywords, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), item['jobId']))
                     self.db.commit()
                     print("更新成功: ", item['keywords'], item['jobId'], newKeywords)
@@ -132,7 +141,7 @@ class LinkedinSpider(scrapy.Spider):
 
         
         # yield item
-        sql = "insert into `positions`(keywords,spiderUrl,jobId,jobTitle,jobUrl,companyName,description,industry,companyAddress,seniorityLevel, employmentType, jobFunction,jobType, companyUrl, pubTime, createdTime,updatedTime) \
+        sql = "insert into " + self.prefix + "positions(keywords,spiderUrl,jobId,jobTitle,jobUrl,companyName,description,industry,companyAddress,seniorityLevel, employmentType, jobFunction,jobType, companyUrl, pubTime, createdTime,updatedTime) \
         values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, %s, %s, %s, %s, %s, %s)"
 
         item['createdTime'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')

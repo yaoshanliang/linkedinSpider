@@ -91,9 +91,9 @@ ITEM_PIPELINES = {
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
 #Mysql数据库的配置信息
-MYSQL_HOST = ''
+MYSQL_HOST = 'iat.net.cn'
 MYSQL_DBNAME = 'linkedin'         #数据库名字，请修改
 MYSQL_USER = 'root'             #数据库账号，请修改 
-MYSQL_PASSWD = ''         #数据库密码，请修改
+MYSQL_PASSWD = 'ysl88842412!'         #数据库密码，请修改
 
 MYSQL_PORT = 3306               #数据库端口，在dbhelper中使用
