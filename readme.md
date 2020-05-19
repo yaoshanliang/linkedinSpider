@@ -5,3 +5,7 @@
     pip3 install scrapy
     pip3 install pymysql
     pip3 install fake_useragent
+
+# Usage
+
+    scrapy crawl linkedin -a keyword=xxx
