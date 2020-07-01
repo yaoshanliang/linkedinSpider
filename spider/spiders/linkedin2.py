@@ -34,7 +34,7 @@ class Linkedin2Spider(scrapy.Spider):
         self.cursor.execute(sql)
         result = self.cursor.fetchone()
         self.keyword = result[1]
-        self.id = result[0]
+        self.id = str(result[0])
         print(self.keyword)
 
         sql = "UPDATE " + self.prefix + "titles SET `updateTime` = '%s' where `id` = '%s'"
