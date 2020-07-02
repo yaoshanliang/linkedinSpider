@@ -43,7 +43,7 @@ class Linkedin2Spider(scrapy.Spider):
 
         sorts = ['R', 'DD']
         sort = choice(sorts)
-        url = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?location=Worldwide&trk=public_jobs_jobs-search-bar_search-submit&sortBy=' + sort + '&start=0&keywords=' + self.keyword
+        url = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?location=China&trk=public_jobs_jobs-search-bar_search-submit&sortBy=' + sort + '&start=0&keywords=' + self.keyword
 
         yield scrapy.Request(url)
 
@@ -151,13 +151,23 @@ class Linkedin2Spider(scrapy.Spider):
         item['industry'] = response.css('.job-criteria__item:nth-child(4) .job-criteria__text--criteria::text').extract_first()
 
         
-        # yield item
-        sql = "insert into " + self.prefix + "positions_" +  self.id + "(keywords,spiderUrl,jobId,jobTitle,jobUrl,companyName,description,industry,companyAddress,seniorityLevel, employmentType, jobFunction,jobType, companyUrl, pubTime, createdTime,updatedTime) \
-        values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, %s, %s, %s, %s, %s, %s)"
+        if is_contains_chinese(self, description) | is_contains_chinese(self, description):
+            print("包含中文，跳过: ", item['keywords'], item['jobId'])
+        else:
+            # yield item
+            sql = "insert into " + self.prefix + "positions_" +  self.id + "(keywords,spiderUrl,jobId,jobTitle,jobUrl,companyName,description,industry,companyAddress,seniorityLevel, employmentType, jobFunction,jobType, companyUrl, pubTime, createdTime,updatedTime) \
+            values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, %s, %s, %s, %s, %s, %s)"
 
-        item['createdTime'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        item['updatedTime'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            item['createdTime'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            item['updatedTime'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        self.cursor.execute(sql, (item['keywords'], item['spiderUrl'], item['jobId'], item['jobTitle'],item['jobUrl'], item['companyName'],item['description'],item['industry'],item['companyAddress'],item['seniorityLevel'], item['employmentType'], item['jobFunction'], item['jobType'],item['companyUrl'], item['pubTime'], item['createdTime'],item['updatedTime']))
-        self.db.commit()
-        print("新增成功: ", item['keywords'], item['jobId'])
+            self.cursor.execute(sql, (item['keywords'], item['spiderUrl'], item['jobId'], item['jobTitle'],item['jobUrl'], item['companyName'],item['description'],item['industry'],item['companyAddress'],item['seniorityLevel'], item['employmentType'], item['jobFunction'], item['jobType'],item['companyUrl'], item['pubTime'], item['createdTime'],item['updatedTime']))
+            self.db.commit()
+            print("新增成功: ", item['keywords'], item['jobId'])
+
+    #检验是否含有中文字符
+    def is_contains_chinese(self, strs):
+        for _char in strs:
+            if '\u4e00' <= _char <= '\u9fa5':
+                return True
+        return False
