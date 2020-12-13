@@ -40,3 +40,8 @@ Then run
     scrapy crawl linkedin -a prefix=it
 
 Data will be stored in table `it_positions`
+
+
+### Crontab
+
+	15 * * * * cd /root/python/linkedinSpider && /usr/local/bin/scrapy crawl linkedin -a prefix=it >> "/root/python/linkedinSpider/$(date +"\%Y-\%m-\%d").it.log" 2>&1
